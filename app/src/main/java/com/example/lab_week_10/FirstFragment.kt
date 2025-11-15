@@ -45,8 +45,13 @@ class FirstFragment : Fragment() {
     private fun prepareViewModel(){
         val viewModel =
             ViewModelProvider(requireActivity()).get(TotalViewModel::class.java)
-        // Set nilai awal pada UI dari ViewModel
-        updateText(viewModel.total)
+        // Observe the LiveData object
+        viewModel.total.observe(viewLifecycleOwner, {
+        // Whenever the value of the LiveData object changes
+        // the updateText() is called, with the new value as the parameter
+            updateText(it)
+        })
+
     }
 
     companion object {
