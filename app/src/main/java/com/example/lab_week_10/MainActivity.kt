@@ -3,15 +3,15 @@ package com.example.lab_week_10
 import android.os.Bundle
 import android.widget.Button
 import android.widget.TextView
-import androidx.activity.enableEdgeToEdge
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.room.Room
 import com.example.lab_week_10.database.Total
 import com.example.lab_week_10.database.TotalDatabase
+import com.example.lab_week_10.database.TotalObject
 import com.example.lab_week_10.viewmodels.TotalViewModel
+import java.util.Date
 import kotlin.getValue
 
 
@@ -34,13 +34,30 @@ class MainActivity : AppCompatActivity() {
         prepareViewModel()
     }
 
+    override fun onStart() {
+        super.onStart()
+
+        val data = db.totalDao().getTotal(ID)
+        if (data.isNotEmpty()) {
+            val last = data.first().total.date
+            Toast.makeText(this, "Last updated: $last", Toast.LENGTH_LONG).show()
+        }
+    }
+
     // Update the value of the total in the database
     // whenever the activity is paused
     // This is done to ensure that the value of the total is always up to date
     // even if the app is closed
     override fun onPause() {
         super.onPause()
-        db.totalDao().update(Total(ID, viewModel.total.value!!))
+        val updated = Total(
+            id = ID,
+            total = TotalObject(
+                value = viewModel.total.value!!,
+                date = Date().toString()
+            )
+        )
+        db.totalDao().update(updated)
     }
 
 
@@ -68,7 +85,7 @@ class MainActivity : AppCompatActivity() {
         return Room.databaseBuilder(
             applicationContext,
             TotalDatabase::class.java, "total-database"
-        ).allowMainThreadQueries().build()
+        ).fallbackToDestructiveMigration().allowMainThreadQueries().build()
     }
     // Initialize the value of the total from the database
     // If the database is empty, insert a new Total object with the value of 0
@@ -76,9 +93,10 @@ class MainActivity : AppCompatActivity() {
     private fun initializeValueFromDatabase() {
         val total = db.totalDao().getTotal(ID)
         if (total.isEmpty()) {
-            db.totalDao().insert(Total(id = 1, total = 0))
+            db.totalDao().insert(Total(id = 1, total = TotalObject(value = 0, date = Date().toString())))
         } else {
-            viewModel.setTotal(total.first().total)
+            val currentTotal = total.first()
+            viewModel.setTotal(currentTotal.total.value)
         }
     }
     // The ID of the Total object in the database
